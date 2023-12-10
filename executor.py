@@ -1,8 +1,10 @@
+import time
 from typing import List
+
+import pyautogui
 from brain import (
     extract_high_level_plan_and_actions,
     extract_structured_actions,
-    initial_task_outline,
     plan_next_step_actions,
 )
 from ocr_draw import annotate_image_with_ocr
@@ -11,6 +13,8 @@ from utils import image_to_base64
 
 
 def take_screenshot():
+    screenshot = pyautogui.screenshot()
+    screenshot.save("screenshot.png")
     return "./screenshot.png"
 
 
@@ -73,10 +77,23 @@ def execute(context: Context, label_map: LabelMap, actions: List[Action]):
 
     for action in actions:
         if action["action"] == "CLICK":
+            if not action["parameter"] in label_map:
+                print(
+                    f"WARN: Label {action['parameter']} not present in the screenshot, skipping CLICK action"
+                )
+                continue
             item = label_map[action["parameter"]]
             print(f"Clicking {item}")
+            pyautogui.moveTo(
+                round(item["position"][0] + 12) / 2,
+                round(item["position"][1] + 12) / 2,
+                duration=1,
+            )
+            time.sleep(1)
+            pyautogui.click()
         elif action["action"] == "TYPE":
             print(f"Typing {action['parameter']}")
+            pyautogui.write(action["parameter"], interval=0.25)
         elif action["action"] == "REFRESH":
             print("Refreshing screenshot")
             next_step(context)
