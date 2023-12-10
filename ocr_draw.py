@@ -2,6 +2,8 @@ import os
 from PIL import Image, ImageDraw, ImageFont
 from google.cloud import vision
 
+from typings import LabelMap
+
 
 def annotate_image_with_ocr(input_image_path):
     print("\n\n> Annotating screenshot")
@@ -24,6 +26,7 @@ def annotate_image_with_ocr(input_image_path):
     label_counter = 1
     label_prefix = "A"
     drawn_positions = []
+    label_map: LabelMap = {}
 
     for text in texts:
         if len(text.description) < 2:
@@ -40,20 +43,21 @@ def annotate_image_with_ocr(input_image_path):
             if label_counter > 9:
                 label_counter = 1
                 next_char = chr(ord(label_prefix[-1]) + 1)
-                if next_char == 'I':
-                    next_char = 'J'  # Skip 'I' to avoid confusion with 'l'
-                if label_prefix[-1] == 'Z':
-                    label_prefix += 'A'
+                if next_char == "I":
+                    next_char = "J"  # Skip 'I' to avoid confusion with 'l'
+                if label_prefix[-1] == "Z":
+                    label_prefix += "A"
                 else:
                     label_prefix = label_prefix[:-1] + next_char
             label = f"{label_prefix}{label_counter}"
             draw_square(original_image, vertices[0], label)
             drawn_positions.append(vertices[0])
+            label_map[label] = {"text": text.description, "position": vertices[0]}
             label_counter += 1
 
     output_filename = f"./annotated_{os.path.basename(input_image_path)}"
     original_image.save(output_filename)
-    return output_filename
+    return label_map, output_filename
 
 
 def draw_square(
