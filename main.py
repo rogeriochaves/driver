@@ -78,6 +78,8 @@ original_image = Image.open("./screenshot.png")
 # Initialize variables for labeling
 label_counter = 1
 label_prefix = "A"
+# List to keep track of positions where squares have been drawn
+drawn_positions = []
 print("Texts:")
 
 for text in texts:
@@ -87,15 +89,24 @@ for text in texts:
     print(f'\n"{text.description}"')
     print("bounds: {}".format(",".join([f"({v[0]},{v[1]})" for v in vertices])))
 
-    # Draw a square on the first vertex
-    if label_counter > 9:
-        label_counter = 1
-        if label_prefix[-1] == "Z":
-            label_prefix += "A"
-        else:
-            label_prefix = label_prefix[:-1] + chr(ord(label_prefix[-1]) + 1)
-    label = f"{label_prefix}{label_counter}"
-    draw_square(original_image, vertices[0], label)
+    # Check if the position is too close to other squares
+    too_close = any(
+        abs(vertices[0][0] - pos[0]) < 48 * 2 and abs(vertices[0][1] - pos[1]) < 24 * 2
+        for pos in drawn_positions
+    )
+
+    if not too_close:
+        # Draw a square on the first vertex
+        if label_counter > 9:
+            label_counter = 1
+            if label_prefix[-1] == "Z":
+                label_prefix += "A"
+            else:
+                label_prefix = label_prefix[:-1] + chr(ord(label_prefix[-1]) + 1)
+        label = f"{label_prefix}{label_counter}"
+        draw_square(original_image, vertices[0], label)
+        drawn_positions.append(vertices[0])
+        label_counter += 1
     label_counter += 1
 
 # Save the modified image
