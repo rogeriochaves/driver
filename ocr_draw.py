@@ -4,6 +4,8 @@ from google.cloud import vision
 
 
 def annotate_image_with_ocr(input_image_path):
+    print("\n\n> Annotating screenshot")
+
     client_options = {
         "api_endpoint": "eu-vision.googleapis.com",
         "api_key": os.environ.get("GCLOUD_API_KEY"),
