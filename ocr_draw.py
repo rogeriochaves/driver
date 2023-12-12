@@ -1,12 +1,13 @@
 import os
 from PIL import Image, ImageDraw, ImageFont
 from google.cloud import vision
+from logger import print_action
 
 from typings import LabelMap
 
 
 def annotate_image_with_ocr(input_image_path):
-    print("\n\n> Annotating screenshot")
+    print_action("Annotating screenshot")
 
     client_options = {
         "api_endpoint": "eu-vision.googleapis.com",
@@ -57,6 +58,9 @@ def annotate_image_with_ocr(input_image_path):
 
     output_filename = f"./annotated_{os.path.basename(input_image_path)}"
     original_image.save(output_filename)
+
+    print(f"{len(label_map.keys())} elements found on the screen")
+
     return label_map, output_filename
 
 
@@ -108,7 +112,4 @@ def draw_square(
         code,
         fill="black",
         font=font,
-        # Different way of doing bold
-        # stroke_width=1,
-        # stroke_fill="black",
     )

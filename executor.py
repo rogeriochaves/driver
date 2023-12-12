@@ -1,3 +1,4 @@
+import sys
 import time
 from typing import List
 
@@ -7,9 +8,11 @@ from brain import (
     extract_structured_actions,
     plan_next_step_actions,
 )
+from logger import print_action
 from ocr_draw import annotate_image_with_ocr
-from typings import Action, LabelMap, Context
+from typings import Action, LabelMap, Context, LabelMapItem
 from utils import image_to_base64
+from colorama import Fore, Back, Style
 
 
 def take_screenshot():
@@ -29,6 +32,7 @@ def start(task: str):
         "actions_history": [],
     }
     plan_and_actions = plan_next_step_actions(
+        label_map=label_map,
         context=context,
         image=image_to_base64(output_image_path),
     )
@@ -49,6 +53,7 @@ def next_step(context: Context):
     screenshot = take_screenshot()
     label_map, output_image_path = annotate_image_with_ocr(screenshot)
     str_actions = plan_next_step_actions(
+        label_map=label_map,
         context=context,
         image=image_to_base64(output_image_path),
     )
@@ -69,33 +74,86 @@ def parse_actions_and_execute(
     if len(actions) > 0:
         execute(context, label_map=label_map, actions=actions)
     else:
-        raise Exception(f"No actions extracted: {actions}")
+        print(
+            Fore.GREEN
+            + "\nNo actions found, assuming our job here is done! Exiting"
+            + Style.RESET_ALL
+        )
+        sys.exit(0)
 
 
 def execute(context: Context, label_map: LabelMap, actions: List[Action]):
-    print("\n\n> Executing actions\n")
+    print_action("Executing actions")
 
     for action in actions:
         if action["action"] == "CLICK":
-            if not action["parameter"] in label_map:
+            if action["label"] not in label_map:
                 print(
-                    f"WARN: Label {action['parameter']} not present in the screenshot, skipping CLICK action"
+                    f"WARN: Label {action['label']} not present in the screenshot, skipping CLICK action"
                 )
                 continue
-            item = label_map[action["parameter"]]
+            item = label_map[action["label"]]
             print(f"Clicking {item}")
-            pyautogui.moveTo(
-                round(item["position"][0] + 12) / 2,
-                round(item["position"][1] + 12) / 2,
-                duration=1,
-            )
-            time.sleep(1)
-            pyautogui.click()
+            click(item)
         elif action["action"] == "TYPE":
-            print(f"Typing {action['parameter']}")
-            pyautogui.write(action["parameter"], interval=0.25)
+            if "label" in action and action["label"] in label_map:
+                item = label_map[action["label"]]
+                print(f"Clicking {item}")
+                click(item)
+            print(f"Typing {action['text']}")
+            pyautogui.write(action["text"], interval=0.25)
+        elif action["action"] == "PRESS":
+            modifier_map = {
+                "CMD": "command",
+                "CTRL": "ctrl",
+                "ALT": "alt",
+                "SHIFT": "shift",
+            }
+
+            if (
+                "modifier" in action
+                and action["modifier"]
+                and "second_modifier" in action
+                and action["second_modifier"]
+            ):
+                print(
+                    f"Executing shortcut {action['modifier']}+{action['second_modifier']}+{action['key']}"
+                )
+                pyautogui.hotkey(
+                    modifier_map[action["modifier"]],
+                    modifier_map[action["second_modifier"]],
+                    action["key"].lower(),
+                    interval=0.1,
+                )
+            elif "modifier" in action and action["modifier"]:
+                print(f"Executing shortcut {action['modifier']}+{action['key']}")
+                pyautogui.hotkey(
+                    modifier_map[action["modifier"]],
+                    action["key"].lower(),
+                    interval=0.1,
+                )
+            else:
+                print(f"Pressing {action['key']}")
+                pyautogui.press(action["key"].lower(), interval=0.1)
         elif action["action"] == "REFRESH":
+            time.sleep(1)
             print("Refreshing screenshot")
             next_step(context)
+            return
         else:
             print("Unknown action")
+        time.sleep(0.2)  # little bit of sleep in between actions
+
+    # Refresh by default if refresh was not issued
+    time.sleep(1)
+    print("Refreshing screenshot")
+    next_step(context)
+
+
+def click(item: LabelMapItem):
+    pyautogui.moveTo(
+        round(item["position"][0] + 12) / 2,
+        round(item["position"][1] + 12) / 2,
+        duration=1,
+    )
+    pyautogui.click()

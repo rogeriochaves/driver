@@ -1,93 +1,48 @@
 import json
 import re
-from typing import List
+from typing import List, cast
 
 from openai import OpenAI
 from openai.types.chat import (
     ChatCompletionMessageParam,
 )
+from logger import print_action
 
-from typings import Action, Context
+from typings import Action, Click, Context, LabelMap, Press, Refresh, Type
 
 client = OpenAI()
 
 
-def initial_task_outline(input: str, image: str):
-    print("\n\n> Looking at the screen to plan task\n")
+def plan_next_step_actions(label_map: LabelMap, context: Context, image: str):
+    print_action("Looking at the screen to plan next steps")
+    print("Analyzing...")
 
-    response = client.chat.completions.create(
-        model="gpt-4-vision-preview",
-        messages=[
-            {
-                "role": "system",
-                "content": """\
-                You are an AI agent with capacity to see the user's screen, click buttons and type text.
-                The user will ask you to do things, you will see the user screen, then you will first think
-                in high level what are the steps you will need to follow to carry the task. Then, you will
-                be given annotated screenshots with codes mapping buttons and texts on the screen, which you
-                can choose to click and proceed, type in an input field, and get a refreshed update of the
-                screen to continue until the task is completed.""",
-            },
-            {
-                "role": "user",
-                "content": [
-                    {
-                        "type": "text",
-                        "text": f"""\
-                    {input}
-
-                    Here is a screenshot of the screen, please do two things:
-
-                    A. High level list of steps to follow, using a numbered list in english text
-                    B. A list of actions to execute, being one of [CLICK A1] to click A1 button for example, \
-                    [TYPE "I love you"] to type "I love you" in the input field, and [REFRESH] to get a new screenshot of the screen. \
-                    DO NOT try to click on a button that is not visible in the screen yet, ask for a refresh first. \
-                    If you need any [REFRESH], stop the action list there, and wait for the new screenshot to continue.
-                    """,
-                    },
-                    {
-                        "type": "image_url",
-                        "image_url": {
-                            "url": image,
-                            "detail": "high",
-                        },
-                    },
-                ],
-            },
-        ],
-        stream=True,
-        max_tokens=300,
+    label_map_str = ", ".join(
+        [f"[{label}] {label_map[label]['text']}" for label in label_map.keys()]
     )
-
-    content = ""
-    for chunk in response:
-        if delta := chunk.choices[0].delta.content:
-            print(delta, end="", flush=True)
-            content += delta
-
-    return content
-
-
-def plan_next_step_actions(context: Context, image: str):
-    print("\n\n> Looking at the screen to plan next steps\n\nAnalyzing...")
+    label_map_prompt = "Screenshot Labels: " + label_map_str + "\n\n"
 
     initial_user_prompt = f"""\
-                    {context['task']}
+                    Task: {context['task']}
 
-                    Here is a screenshot of the screen, please do two things:
+                    Here is a screenshot of the screen, tagged with labels like A1, A2, A3 on each interactive item, please do two things:
 
                     A. High level list of steps to follow, using a numbered list in english text
-                    B. A list of actions to execute, being one of [CLICK A1] to click A1 button for example, \
-                    [TYPE "I love you"] to type "I love you" in the input field, and [REFRESH] to get a new screenshot of the screen. \
-                    DO NOT try to click on a button that is not visible in the screen yet, ask for a refresh first. \
-                    If you need any [REFRESH], stop the action list there, and wait for the new screenshot to continue.
+
+                    B. A list of actions to execute, being one of [CLICK A1] to click the A1 button for example, \
+                    [TYPE "message"] to type "message", [PRESS ENTER] to \
+                    press keys ENTER or shortcuts like CMD+F if needed, and [REFRESH] to end the list and get a new screenshot of the screen. \
+                    Those are the ONLY options you have, work with that. If you need to switch apps,
+                    use [PRESS CMD+SPACE] to open the spotlight and then [REFRESH]. \
+                    If you want to click or type on an element that is not on the screen, issue a [REFRESH] first. \
                     """
 
     next_step_user_prompt = f"""\
     Alright, I have executed the previous actions, let me share you the updated screenshot, so you can plan the next actions.
+    Describe what you are seeing, and if we seem to be on the right track.
     As a reminder my goal is: {context['task']}.
 
-    Please create a list with the next actions to take (options are [CLICK <CODE>], [TYPE <TEXT>] or [REFRESH])
+    Please create a list with the next actions to take if any (options are [CLICK <LABEL>], [TYPE "<TEXT>"], [SHORTCUT <shortcut>] or [REFRESH])
     """
 
     user_prompt = (
@@ -100,7 +55,7 @@ def plan_next_step_actions(context: Context, image: str):
             "content": [
                 {
                     "type": "text",
-                    "text": user_prompt,
+                    "text": label_map_prompt + user_prompt,
                 },
                 {
                     "type": "image_url",
@@ -124,7 +79,7 @@ def plan_next_step_actions(context: Context, image: str):
                 in high level what are the steps you will need to follow to carry the task. Then, you will
                 be given annotated screenshots with codes mapping buttons and texts on the screen, which you
                 can choose to click and proceed, type in an input field, and get a refreshed update of the
-                screen to continue until the task is completed.""",
+                screen to continue until the task is completed. You are always very short and concise in your writing.""",
         },
     ]
 
@@ -172,7 +127,55 @@ def extract_high_level_plan_and_actions(input: str):
 
 
 def extract_structured_actions(input: str):
-    print("\n\n> Extracting actions\n")
+    actions = heuristics_extract_structured_actions(input)
+    if not actions:
+        actions = llm_structured_actions(input)
+    return actions
+
+
+def heuristics_extract_structured_actions(input: str):
+    actions_list = []
+
+    # Split the input string by lines and iterate through them
+    for line in input.split("\n"):
+        # Match the pattern [ACTION "arguments" additional_arguments] ignoring anything outside brackets
+        match = re.search(r"\[(\w+)(?:\s+\"?([^\"]+?)\"?)?(?:\s+(\w+))?\]", line)
+        if match:
+            action_type = match.group(1)
+            arguments = match.group(2)
+            additional_argument = match.group(3)
+
+            if action_type == "CLICK":
+                actions_list.append(Click(action="CLICK", label=arguments))
+            elif action_type == "TYPE":
+                actions_list.append(
+                    Type(action="TYPE", text=arguments, label=additional_argument)
+                )
+            elif action_type == "PRESS":
+                # Handle the modifiers and keys separately
+                parts = arguments.split("+") if arguments else []
+                modifier = parts[0] if len(parts) > 1 else None
+                second_modifier = parts[1] if len(parts) > 2 else None
+                key = parts[-1] if parts else None
+                actions_list.append(
+                    Press(
+                        action="PRESS",
+                        modifier=modifier,
+                        second_modifier=second_modifier,
+                        key=key or "",
+                    )
+                )
+            elif action_type == "REFRESH":
+                actions_list.append(Refresh(action="REFRESH"))
+            else:
+                # Unknown action type
+                return None
+
+    return actions_list if actions_list else None
+
+
+def llm_structured_actions(input: str):
+    print_action("Extracting actions")
 
     response = client.chat.completions.create(
         model="gpt-4-1106-preview",
@@ -183,7 +186,7 @@ def extract_structured_actions(input: str):
                 You are helping extracing a structured text from another's bot unstructured output.
                 That bot is responsible for taking a user task, then seeing the user screen,
                 comming up with a list of discrete actions to execute.
-                You are responsible for extracting the list of actions to a json we can use""",
+                You are responsible for extracting the list of actions to a json we can use by using a sequence of tool calls""",
             },
             {
                 "role": "user",
@@ -203,44 +206,91 @@ def extract_structured_actions(input: str):
             {
                 "type": "function",
                 "function": {
-                    "name": "actions_extraction",
-                    "description": "Extracts the actions",
+                    "name": "CLICK",
+                    "description": "Clicks on an item on the screen",
                     "parameters": {
                         "type": "object",
                         "properties": {
-                            "actions": {
-                                "type": "array",
-                                "items": {
-                                    "type": "object",
-                                    "properties": {
-                                        "action": {
-                                            "type": "string",
-                                            "enum": ["CLICK", "TYPE", "REFRESH"],
-                                            "description": "The action to execute, being one of [CLICK A1] to click A1 button for example, [TYPE 'I love you'] to type 'I love you' in the input field, and [REFRESH] to get a new screenshot of the screen.",
-                                        },
-                                        "parameter": {
-                                            "type": "string",
-                                            "description": "The parameter of the action, being the button name, the text to type, or null for [REFRESH]",
-                                        },
-                                    },
-                                    "required": ["action"],
-                                },
+                            "label": {
+                                "type": "string",
+                                "description": "The label of the item to click, in the format like A1, A2, A3, etc",
                             },
                         },
-                        "required": ["actions"],
+                        "required": ["label"],
                     },
                 },
-            }
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "TYPE",
+                    "description": "Type a text on an input field on the screen",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "text": {
+                                "type": "string",
+                                "description": "The label of the item to click",
+                            },
+                        },
+                        "required": ["text"],
+                    },
+                },
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "PRESS",
+                    "description": "Press a key or executes a shortcut on the screen",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "modifier": {
+                                "type": "string",
+                                "description": "The modifier key to press, options are CMD, CTRL, ALT or SHIFT",
+                                "enum": ["CMD", "CTRL", "ALT", "SHIFT"],
+                                "optional": True,
+                            },
+                            "second_modifier": {
+                                "type": "string",
+                                "description": "Optional second modifier key to press, options are CMD, CTRL, ALT or SHIFT",
+                                "enum": ["CMD", "CTRL", "ALT", "SHIFT"],
+                                "optional": True,
+                            },
+                            "key": {
+                                "type": "string",
+                                "description": "The key to press, in uppercase, such as any letter, number, symbols, F1-F12, ENTER, SPACE or ESC",
+                            },
+                        },
+                        "required": ["key"],
+                    },
+                },
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "REFRESH",
+                    "description": "Type a text on an input field on the screen",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {},
+                    },
+                },
+            },
         ],
-        tool_choice={
-            "type": "function",
-            "function": {"name": "actions_extraction"},
-        },
     )
 
-    if tool_calls := response.choices[0].message.tool_calls:
-        result: List[Action] = json.loads(tool_calls[0].function.arguments)["actions"]
-        print(result)
-        return result
-    else:
+    actions: List[Action] = []
+    try:
+        tool_uses = json.loads(
+            (response.choices[0].message.content or "")
+            .replace("```json", "")
+            .replace("```", "")
+        )
+        for tool_use in tool_uses:
+            action = cast(Action, {"action": tool_use["recipient_name"].split(".")[-1]})
+            action.update(tool_use["parameters"])
+            actions.append(action)
+        return actions
+    except Exception as e:
         return None
