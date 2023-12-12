@@ -1,9 +1,9 @@
 import os
 from PIL import Image, ImageDraw, ImageFont
 from google.cloud import vision
-from logger import print_action
+from driver.logger import print_action
 
-from typings import LabelMap
+from driver.typings import LabelMap
 
 
 def annotate_image_with_ocr(input_image_path):

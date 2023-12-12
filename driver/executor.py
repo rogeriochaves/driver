@@ -3,14 +3,14 @@ import time
 from typing import List
 
 import pyautogui
-from brain import (
+from driver.brain import (
     extract_high_level_plan_and_actions,
     extract_structured_actions,
     plan_next_step_actions,
 )
-from logger import print_action
-from ocr_draw import annotate_image_with_ocr
-from typings import Action, LabelMap, Context, LabelMapItem
+from driver.logger import print_action
+from driver.ocr_draw import annotate_image_with_ocr
+from driver.typings import Action, LabelMap, Context, LabelMapItem
 from colorama import Fore, Back, Style
 
 
@@ -142,7 +142,7 @@ def execute(context: Context, label_map: LabelMap, actions: List[Action]):
         time.sleep(0.2)  # little bit of sleep in between actions
 
     # Refresh by default if refresh was not issued
-    time.sleep(1)
+    time.sleep(2)
     print("Refreshing screenshot")
     next_step(context)
 

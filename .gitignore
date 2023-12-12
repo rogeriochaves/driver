@@ -1,2 +1,6 @@
 .env
 __pycache__
+screenshot.png
+!docs/screenshot.png
+annotated_screenshot.png
+!docs/annotated_screenshot.png
