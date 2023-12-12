@@ -59,7 +59,7 @@ def annotate_image_with_ocr(input_image_path):
     output_filename = f"./annotated_{os.path.basename(input_image_path)}"
     original_image.save(output_filename)
 
-    print(f"{len(label_map.keys())} elements found on the screen")
+    print(f"{len(label_map.keys())} elements found on the screen", end="")
 
     return label_map, output_filename
 

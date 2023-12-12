@@ -11,7 +11,6 @@ from brain import (
 from logger import print_action
 from ocr_draw import annotate_image_with_ocr
 from typings import Action, LabelMap, Context, LabelMapItem
-from utils import image_to_base64
 from colorama import Fore, Back, Style
 
 
@@ -32,9 +31,8 @@ def start(task: str):
         "actions_history": [],
     }
     plan_and_actions = plan_next_step_actions(
-        label_map=label_map,
         context=context,
-        image=image_to_base64(output_image_path),
+        image_path=output_image_path,
     )
     if plan_and_actions:
         high_level_plan, str_actions = extract_high_level_plan_and_actions(
@@ -53,9 +51,8 @@ def next_step(context: Context):
     screenshot = take_screenshot()
     label_map, output_image_path = annotate_image_with_ocr(screenshot)
     str_actions = plan_next_step_actions(
-        label_map=label_map,
         context=context,
-        image=image_to_base64(output_image_path),
+        image_path=output_image_path,
     )
     parse_actions_and_execute(
         label_map=label_map, context=context, str_actions=str_actions

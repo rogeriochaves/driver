@@ -6,21 +6,18 @@ from openai import OpenAI
 from openai.types.chat import (
     ChatCompletionMessageParam,
 )
+from cost import log_cost
 from logger import print_action
 
-from typings import Action, Click, Context, LabelMap, Press, Refresh, Type
+from typings import Action, Click, Context, Press, Refresh, Type
+from utils import image_to_base64
 
 client = OpenAI()
 
 
-def plan_next_step_actions(label_map: LabelMap, context: Context, image: str):
+def plan_next_step_actions(context: Context, image_path: str):
     print_action("Looking at the screen to plan next steps")
     print("Analyzing...")
-
-    label_map_str = ", ".join(
-        [f"[{label}] {label_map[label]['text']}" for label in label_map.keys()]
-    )
-    label_map_prompt = "Screenshot Labels: " + label_map_str + "\n\n"
 
     initial_user_prompt = f"""\
                     Task: {context['task']}
@@ -55,12 +52,12 @@ def plan_next_step_actions(label_map: LabelMap, context: Context, image: str):
             "content": [
                 {
                     "type": "text",
-                    "text": label_map_prompt + user_prompt,
+                    "text": user_prompt,
                 },
                 {
                     "type": "image_url",
                     "image_url": {
-                        "url": image,
+                        "url": image_to_base64(image_path),
                         "detail": "high",
                     },
                 },
@@ -83,11 +80,14 @@ def plan_next_step_actions(label_map: LabelMap, context: Context, image: str):
         },
     ]
 
+    model = "gpt-4-vision-preview"
+    messages = system_message + history + user_message
+
     response = client.chat.completions.create(
-        model="gpt-4-vision-preview",
-        messages=system_message + history + user_message,
+        model=model,
+        messages=messages,
         stream=True,
-        max_tokens=300,
+        max_tokens=600,
     )
 
     content = ""
@@ -107,6 +107,17 @@ def plan_next_step_actions(label_map: LabelMap, context: Context, image: str):
             "role": "assistant",
             "content": content,
         }
+    )
+
+    log_cost(
+        model=model,
+        messages=system_message + history,
+        completion=content,
+        image={
+            "text": user_prompt,
+            "path": image_path,
+            "detail": "high",
+        },
     )
 
     return content
@@ -177,31 +188,34 @@ def heuristics_extract_structured_actions(input: str):
 def llm_structured_actions(input: str):
     print_action("Extracting actions")
 
-    response = client.chat.completions.create(
-        model="gpt-4-1106-preview",
-        messages=[
-            {
-                "role": "system",
-                "content": """\
+    model = "gpt-4-1106-preview"
+    messages = [
+        {
+            "role": "system",
+            "content": """\
                 You are helping extracing a structured text from another's bot unstructured output.
                 That bot is responsible for taking a user task, then seeing the user screen,
                 comming up with a list of discrete actions to execute.
                 You are responsible for extracting the list of actions to a json we can use by using a sequence of tool calls""",
-            },
-            {
-                "role": "user",
-                "content": [
-                    {
-                        "type": "text",
-                        "text": f"""\
+        },
+        {
+            "role": "user",
+            "content": [
+                {
+                    "type": "text",
+                    "text": f"""\
                     Here is the output of the previous bot, please extract the list of actions:
 
                     {input}
                     """,
-                    },
-                ],
-            },
-        ],
+                },
+            ],
+        },
+    ]
+
+    response = client.chat.completions.create(
+        model=model,
+        messages=messages,
         tools=[
             {
                 "type": "function",
@@ -282,11 +296,9 @@ def llm_structured_actions(input: str):
 
     actions: List[Action] = []
     try:
-        tool_uses = json.loads(
-            (response.choices[0].message.content or "")
-            .replace("```json", "")
-            .replace("```", "")
-        )
+        content = response.choices[0].message.content or ""
+        log_cost(model=model, messages=messages, completion=content)
+        tool_uses = json.loads(content.replace("```json", "").replace("```", ""))
         for tool_use in tool_uses:
             action = cast(Action, {"action": tool_use["recipient_name"].split(".")[-1]})
             action.update(tool_use["parameters"])
