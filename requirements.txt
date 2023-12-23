@@ -4,3 +4,4 @@ pyautogui==0.9.54
 PyScreeze==0.1.30
 colorama
 litellm
+python-dotenv
