@@ -1,26 +1,14 @@
 import os
 from PIL import Image, ImageDraw, ImageFont
-from google.cloud import vision
-from driver.logger import print_action
+from driver.ocr_call import ocr_text_detection
+
 
 from driver.typings import LabelMap
+from driver.utils import is_retina_display
 
 
 def annotate_image_with_ocr(input_image_path):
-    print_action("Annotating screenshot")
-
-    client_options = {
-        "api_endpoint": "eu-vision.googleapis.com",
-        "api_key": os.environ.get("GCLOUD_API_KEY"),
-    }
-
-    client = vision.ImageAnnotatorClient(client_options=client_options)
-
-    with open(input_image_path, "rb") as image_file:
-        content = image_file.read()
-
-    image = vision.Image(content=content)
-    response = client.text_detection(image=image)  # type: ignore
+    response = ocr_text_detection(input_image_path)
     texts = response.text_annotations
 
     original_image = Image.open(input_image_path)
@@ -51,7 +39,13 @@ def annotate_image_with_ocr(input_image_path):
                 else:
                     label_prefix = label_prefix[:-1] + next_char
             label = f"{label_prefix}{label_counter}"
-            draw_square(original_image, vertices[0], label)
+            draw_square(
+                original_image,
+                vertices[0],
+                label,
+                width=48 if is_retina_display() else 24,
+                height=24 if is_retina_display() else 12,
+            )
             drawn_positions.append(vertices[0])
             label_map[label] = {"text": text.description, "position": vertices[0]}
             label_counter += 1
@@ -75,16 +69,19 @@ def draw_square(
     outline_color="#EBD872",
 ):
     draw = ImageDraw.Draw(image)
+    font_size = 22 if is_retina_display() else 11
     try:
-        font = ImageFont.truetype("arialbd.ttf", 22)
+        font = ImageFont.truetype("arialbd.ttf", font_size)
     except Exception:
-        font = ImageFont.truetype("/Library/Fonts/Arial Bold.ttf", 22)
+        font = ImageFont.truetype("/Library/Fonts/Arial Bold.ttf", font_size)
     x, y = position
     x, y = x - width, y - height
+    x = max(0, x)
+    y = max(0, y)
     x1, y1 = x + width, y + height
 
     # Create a gradient
-    gradient = Image.new("RGB", (1, 24), color=fill_color_start)
+    gradient = Image.new("RGB", (1, height), color=fill_color_start)
     for i in range(height):
         gradient.putpixel(
             (0, i),

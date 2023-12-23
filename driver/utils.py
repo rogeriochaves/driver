@@ -1,5 +1,7 @@
 import base64
 import mimetypes
+import subprocess
+import sys
 
 
 def image_to_base64(file_path: str):
@@ -7,3 +9,18 @@ def image_to_base64(file_path: str):
     with open(file_path, "rb") as image_file:
         encoded_string = base64.b64encode(image_file.read()).decode("utf-8")
     return f"data:{mime_type};base64,{encoded_string}"
+
+
+is_retina = False
+if (
+    sys.platform == "darwin"
+    and subprocess.call(
+        "system_profiler SPDisplaysDataType | grep -i 'retina' > /dev/null 2>&1", shell=True
+    )
+    == 0
+):
+    is_retina = True
+
+
+def is_retina_display():
+    return is_retina

@@ -11,7 +11,9 @@ from driver.brain import (
 from driver.logger import print_action
 from driver.ocr_draw import annotate_image_with_ocr
 from driver.typings import Action, LabelMap, Context, LabelMapItem
-from colorama import Fore, Back, Style
+from colorama import Fore, Style
+
+from driver.utils import is_retina_display
 
 
 def take_screenshot():
@@ -148,9 +150,10 @@ def execute(context: Context, label_map: LabelMap, actions: List[Action]):
 
 
 def click(item: LabelMapItem):
+    division = 2 if is_retina_display() else 1
     pyautogui.moveTo(
-        round(item["position"][0] + 12) / 2,
-        round(item["position"][1] + 12) / 2,
+        round(item["position"][0] + 12) / division,
+        round(item["position"][1] + 12) / division,
         duration=1,
     )
     pyautogui.click()

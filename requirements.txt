@@ -1,4 +1,5 @@
 google-cloud-vision
+azure-cognitiveservices-vision-computervision
 Pillow==10.1.0
 pyautogui==0.9.54
 PyScreeze==0.1.30
