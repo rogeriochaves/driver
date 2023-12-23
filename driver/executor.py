@@ -3,6 +3,7 @@ import time
 from typing import List
 
 import pyautogui
+import pyperclip
 from driver.brain import (
     extract_high_level_plan_and_actions,
     extract_structured_actions,
@@ -99,8 +100,7 @@ def execute(context: Context, label_map: LabelMap, actions: List[Action]):
                 item = label_map[action["label"]]
                 print(f"Clicking {item}")
                 click(item)
-            print(f"Typing {action['text']}")
-            pyautogui.write(action["text"], interval=0.25)
+            type(action["text"])
         elif action["action"] == "PRESS":
             modifier_map = {
                 "CMD": "command",
@@ -157,3 +157,27 @@ def click(item: LabelMapItem):
         duration=1,
     )
     pyautogui.click()
+
+
+def type(text):
+    text = text.replace("\\n", "\n")
+    print(f"Typing {text}")
+    if contains_non_typeable_characters(text):
+        pyperclip.copy(text)
+        if sys.platform == "darwin":
+            pyautogui.hotkey("command", "v", interval=0.1)
+        else:
+            pyautogui.hotkey("ctrl", "v", interval=0.1)
+    else:
+        pyautogui.write(text, interval=0.05)
+
+
+def contains_non_typeable_characters(text):
+    typeable_characters = set(
+        "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890 ,.?!@#$%^&*()-_=+[]{}|;:'\"<>/\\`~"
+    )
+
+    for char in text:
+        if char not in typeable_characters:
+            return True
+    return False

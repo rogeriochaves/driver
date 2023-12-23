@@ -2,6 +2,7 @@ google-cloud-vision
 azure-cognitiveservices-vision-computervision
 Pillow==10.1.0
 pyautogui==0.9.54
+pyperclip
 PyScreeze==0.1.30
 colorama
 litellm
