@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from typing import Dict, List, Literal, Optional, TypedDict, Union
 from openai.types.chat import (
     ChatCompletionAssistantMessageParam,
@@ -45,3 +46,25 @@ class Context(TypedDict):
         Union[ChatCompletionAssistantMessageParam, ChatCompletionUserMessageParam]
     ]
     actions_history: List[List[Action]]
+
+
+@dataclass
+class Vertex:
+    x: int
+    y: int
+
+
+@dataclass
+class BoundingPoly:
+    vertices: List[Vertex]
+
+
+@dataclass
+class TextAnnotation:
+    description: str
+    bounding_poly: BoundingPoly
+
+
+@dataclass
+class AnnotatedImage:
+    text_annotations: List[TextAnnotation]

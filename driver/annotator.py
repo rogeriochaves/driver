@@ -3,7 +3,7 @@ from PIL import Image, ImageDraw, ImageFont
 from driver.ocr_call import ocr_text_detection
 
 
-from driver.typings import LabelMap
+from driver.types import LabelMap
 from driver.utils import is_retina_display
 
 

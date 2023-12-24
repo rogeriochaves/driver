@@ -10,27 +10,7 @@ from azure.cognitiveservices.vision.computervision.models import (
 )
 from msrest.authentication import CognitiveServicesCredentials
 
-
-@dataclass
-class Vertex:
-    x: int
-    y: int
-
-
-@dataclass
-class BoundingPoly:
-    vertices: List[Vertex]
-
-
-@dataclass
-class TextAnnotation:
-    description: str
-    bounding_poly: BoundingPoly
-
-
-@dataclass
-class AnnotatedImage:
-    text_annotations: List[TextAnnotation]
+from driver.types import AnnotatedImage, BoundingPoly, TextAnnotation, Vertex
 
 
 def ocr_text_detection(input_image_path) -> AnnotatedImage:

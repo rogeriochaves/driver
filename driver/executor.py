@@ -10,8 +10,8 @@ from driver.brain import (
     plan_next_step_actions,
 )
 from driver.logger import print_action
-from driver.ocr_draw import annotate_image_with_ocr
-from driver.typings import Action, LabelMap, Context, LabelMapItem
+from driver.annotator import annotate_image_with_ocr
+from driver.types import Action, LabelMap, Context, LabelMapItem
 from colorama import Fore, Style
 
 from driver.utils import is_retina_display

@@ -9,7 +9,7 @@ from openai.types.chat import (
 from driver.cost import log_cost
 from driver.logger import print_action
 
-from driver.typings import Action, Click, Context, Press, Refresh, Type
+from driver.types import Action, Click, Context, Press, Refresh, Type
 from driver.utils import image_to_base64
 
 client = OpenAI()
