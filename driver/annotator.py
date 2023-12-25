@@ -78,31 +78,32 @@ def annotate_image(input_image_path, debug: DebugConfig):
             and abs(label_position[1] - pos[1]) < label_height * 2
             for pos in drawn_positions
         )
+        if too_close:
+            continue
 
-        if not too_close:
-            if label_counter > 9:
-                label_counter = 1
-                next_char = chr(ord(label_prefix[-1]) + 1)
-                if next_char == "I":
-                    next_char = "J"  # Skip 'I' to avoid confusion with 'l'
-                if label_prefix[-1] == "Z":
-                    label_prefix += "A"
-                else:
-                    label_prefix = label_prefix[:-1] + next_char
-            label = f"{label_prefix}{label_counter}"
-            draw_square(
-                original_image,
-                label_position,
-                label,
-                width=label_width,
-                height=label_height,
-            )
-            drawn_positions.append(label_position)
-            label_map[label] = {
-                "text": component.text_content or "",
-                "position": label_position,
-            }
-            label_counter += 1
+        if label_counter > 9:
+            label_counter = 1
+            next_char = chr(ord(label_prefix[-1]) + 1)
+            if next_char == "I":
+                next_char = "J"  # Skip 'I' to avoid confusion with 'l'
+            if label_prefix[-1] == "Z":
+                label_prefix += "A"
+            else:
+                label_prefix = label_prefix[:-1] + next_char
+        label = f"{label_prefix}{label_counter}"
+        draw_square(
+            original_image,
+            label_position,
+            label,
+            width=label_width,
+            height=label_height,
+        )
+        drawn_positions.append(label_position)
+        label_map[label] = {
+            "text": component.text_content or "",
+            "position": label_position,
+        }
+        label_counter += 1
 
     os.makedirs("./output/annotated", exist_ok=True)
     output_image_path = f"./output/annotated/{os.path.basename(input_image_path)}"
