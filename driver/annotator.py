@@ -36,11 +36,13 @@ def annotate_image(input_image_path, debug: DebugConfig):
     label_width = 48 if is_retina_display() else 24
     label_height = 24 if is_retina_display() else 12
 
-    # Sort components by rounded top to bottom, then left to right, so that labels are drawn in the same order
-    # and our eyes can follow them more easily, and probably GPT-V "eyes" too
+    # Most likely the biggest components are the most important ones to be clicked on the screen,
+    # and seems like GPT-V will be biased anyway towards choosing A1, A2, etc the early labels,
+    # so we try to play into that and label from the biggest to the smallest components
     sorted_components = sorted(
         components["compos"],
-        key=lambda x: (math.ceil(x.row_min / (label_height * 2)), x.col_min),
+        key=lambda x: (x.row_max - x.row_min) * (x.col_max - x.col_min),
+        reverse=True
     )
 
     for component in sorted_components:

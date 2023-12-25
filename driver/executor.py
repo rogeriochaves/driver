@@ -170,7 +170,7 @@ def click(item: LabelMapItem):
     window = pygetwindow.getWindowsAt(x, y)
     if window:
         focused_window = get_active_window()
-        if focused_window not in window[0]:
+        if focused_window and focused_window not in window[0]:
             pyautogui.click()  # one extra click to focus the window
     pyautogui.click()
 
@@ -187,10 +187,13 @@ def get_active_window():
         return windowTitle
         """
 
-        frontmost_app_name = subprocess.check_output(
-            ["osascript", "-e", applescript_command], text=True
-        ).strip()
-        return frontmost_app_name
+        try:
+            frontmost_app_name = subprocess.check_output(
+                ["osascript", "-e", applescript_command], text=True
+            ).strip()
+            return frontmost_app_name
+        except subprocess.CalledProcessError:
+            return None
     else:
         return pygetwindow.getActiveWindow()
 
