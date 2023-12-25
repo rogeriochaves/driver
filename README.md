@@ -4,8 +4,8 @@ This project integrates GPT-V with OCR to address the shortcommings of GPT-V in 
 
 The way it works is by annotating each identified element with a label that GPT-V can use:
 
-| Screenshot                      | Annotated                                           |
-| ------------------------------- | --------------------------------------------------- |
+| Screenshot                           | Annotated                                                |
+| ------------------------------------ | -------------------------------------------------------- |
 | ![screenshot](./docs/screenshot.png) | ![annotated screenshot](./docs/annotated_screenshot.png) |
 
 ## Demo
@@ -44,6 +44,10 @@ Finally, ask it to do anything you want!
 ```
 python main.py "hey there, please go to my gmail and send an email to Laura with a poem declaring my love"
 ```
+
+## Acknowledgments
+
+Thanks to @MulongXie et al for building the [UIED algorithm](https://github.com/MulongXie/UIED), which is used together with OCR for identifying GUI elements
 
 ## Contributing
 
