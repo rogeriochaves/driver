@@ -39,7 +39,8 @@ def plan_next_step_actions(context: Context, image_path: str):
     Describe what you are seeing, and describe where it might have gone wrong, because usually the screen changes and we have to course correct.
     As a reminder my goal is: {context['task']}.
 
-    Please create a list with the next actions to take if any (options are [CLICK <LABEL>], [TYPE "<TEXT>"], [SHORTCUT <shortcut>] or [REFRESH])
+    Please create a list with the next actions to take if any (options are [CLICK <LABEL>], [TYPE "<TEXT>"], [SHORTCUT <shortcut>] or [REFRESH]).
+    Pay extra attention to the labels on the screen, you need to name them correctly, and a place you want to click is not labeled, choose another one.
     """
 
     user_prompt = (
