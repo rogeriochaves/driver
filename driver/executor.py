@@ -166,7 +166,7 @@ def click(item: LabelMapItem):
         round(item["position"][0] + item["size"][0] / 2) / division,
         round(item["position"][1] + item["size"][1] / 2) / division,
     )
-    pyautogui.moveTo(x, y, duration=1)
+    pyautogui.moveTo(x, y, duration=0.5)
     window = pygetwindow.getWindowsAt(x, y)
     if window:
         focused_window = get_active_window()
