@@ -78,7 +78,7 @@ key_params = {
     "min-grad": 10,
     "ffl-block": 5,
     "min-ele-area": 50,
-    "merge-contained-ele": True,
+    "merge-contained-ele": False,
     "merge-line-to-paragraph": True,
     "remove-bar": False,
 }
