@@ -39,6 +39,11 @@ class LabelMapItem(TypedDict):
 LabelMap = Dict[str, LabelMapItem]
 
 
+class ImgMultiplierFactor(TypedDict):
+    width: float
+    height: float
+
+
 class Context(TypedDict):
     task: str
     high_level_plan: str
@@ -46,6 +51,7 @@ class Context(TypedDict):
         Union[ChatCompletionAssistantMessageParam, ChatCompletionUserMessageParam]
     ]
     actions_history: List[List[Action]]
+    img_multiplier_factor: ImgMultiplierFactor
 
 
 @dataclass

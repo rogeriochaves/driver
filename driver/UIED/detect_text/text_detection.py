@@ -142,13 +142,12 @@ def text_detection(ocr_result: AnnotatedImage, input_file='../data/input/30800.j
     img = cv2.imread(input_file)
 
     texts = text_cvt_orc_format(ocr_result)
-    texts = merge_intersected_texts(texts)
+    # texts = merge_intersected_texts(texts)
     texts = text_filter_noise(texts)
     texts = text_sentences_recognition(texts)
 
     visualize_texts(img, texts, shown_resize_height=800, show=show, write_path=pjoin(ocr_root, name+'.png'))
     json = save_detection_json(pjoin(ocr_root, name+'.json'), texts, img.shape)
-    print("[Text Detection Completed in %.3f s] Input: %s Output: %s" % (time.time() - start, input_file, pjoin(ocr_root, name+'.json')))
 
     return json
 

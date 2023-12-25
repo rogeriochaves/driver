@@ -1,7 +1,11 @@
 import sys
 import os
+from typing import List, Tuple, TypedDict
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))))
+sys.path.append(os.path.dirname(__file__))
+sys.path.append(
+    os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+)
 
 from os.path import join as pjoin
 import cv2
@@ -11,6 +15,7 @@ from detect_text.ocr import ocr_detection_google
 from google.cloud import vision
 
 from driver.types import AnnotatedImage
+from detect_merge.merge import DetectElementsResponse
 
 
 def resize_height_by_longest_edge(img_path, resize_length=800):
@@ -79,8 +84,10 @@ key_params = {
 }
 
 
-def detect_components(input_path_img, ocr_result: AnnotatedImage, max_height, show=False):
-    output_root = "data/output"
+def detect_components(
+    input_path_img, ocr_result: AnnotatedImage, max_height, show=False
+) -> DetectElementsResponse:
+    output_root = "output"
 
     resized_height = resize_height_by_longest_edge(
         input_path_img, resize_length=max_height

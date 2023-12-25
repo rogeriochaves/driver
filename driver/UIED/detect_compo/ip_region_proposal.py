@@ -88,6 +88,5 @@ def compo_detection(input_img_path, output_root, uied_params,
     # *** Step 7 *** save detection result
     Compo.compos_update(uicompos, org.shape)
     uicompos = file.save_corners_json(pjoin(ip_root, name + '.json'), uicompos)
-    print("[Compo Detection Completed in %.3f s] Input: %s Output: %s" % (time.time() - start, input_img_path, pjoin(ip_root, name + '.json')))
 
     return uicompos

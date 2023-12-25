@@ -1,3 +1,4 @@
+import os
 import sys
 import time
 from typing import List
@@ -10,7 +11,7 @@ from driver.brain import (
     plan_next_step_actions,
 )
 from driver.logger import print_action
-from driver.annotator import annotate_image_with_ocr
+from driver.annotator import annotate_image
 from driver.types import Action, LabelMap, Context, LabelMapItem
 from colorama import Fore, Style
 
@@ -19,19 +20,21 @@ from driver.utils import is_retina_display
 
 def take_screenshot():
     screenshot = pyautogui.screenshot()
-    screenshot.save("screenshot.png")
-    return "./screenshot.png"
+    os.makedirs("./output", exist_ok=True)
+    screenshot.save("./output/screenshot.png")
+    return "./output/screenshot.png"
 
 
 def start(task: str):
     screenshot = take_screenshot()
-    label_map, output_image_path = annotate_image_with_ocr(screenshot)
+    label_map, output_image_path, img_multiplier_factor = annotate_image(screenshot)
 
     context: Context = {
         "task": task,
         "history": [],
         "high_level_plan": "",
         "actions_history": [],
+        "img_multiplier_factor": img_multiplier_factor,
     }
     plan_and_actions = plan_next_step_actions(
         context=context,
@@ -52,7 +55,8 @@ def start(task: str):
 
 def next_step(context: Context):
     screenshot = take_screenshot()
-    label_map, output_image_path = annotate_image_with_ocr(screenshot)
+    label_map, output_image_path, img_multiplier_factor = annotate_image(screenshot)
+    context["img_multiplier_factor"] = img_multiplier_factor
     str_actions = plan_next_step_actions(
         context=context,
         image_path=output_image_path,
@@ -94,12 +98,12 @@ def execute(context: Context, label_map: LabelMap, actions: List[Action]):
                 continue
             item = label_map[action["label"]]
             print(f"Clicking {item}")
-            click(item)
+            click(context, item)
         elif action["action"] == "TYPE":
             if "label" in action and action["label"] in label_map:
                 item = label_map[action["label"]]
                 print(f"Clicking {item}")
-                click(item)
+                click(context, item)
             type(action["text"])
         elif action["action"] == "PRESS":
             modifier_map = {
@@ -149,11 +153,11 @@ def execute(context: Context, label_map: LabelMap, actions: List[Action]):
     next_step(context)
 
 
-def click(item: LabelMapItem):
+def click(context: Context, item: LabelMapItem):
     division = 2 if is_retina_display() else 1
     pyautogui.moveTo(
-        round(item["position"][0] + 12) / division,
-        round(item["position"][1] + 12) / division,
+        round(item["position"][0] + (24 * 1.5 * division)) / division,
+        round(item["position"][1] + (12 * 1.5 * division)) / division,
         duration=1,
     )
     pyautogui.click()

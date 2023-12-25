@@ -14,12 +14,12 @@ from driver.types import AnnotatedImage, BoundingPoly, TextAnnotation, Vertex
 
 
 def ocr_text_detection(input_image_path) -> AnnotatedImage:
-    if os.environ.get("GCLOUD_VISION_API_KEY"):
-        print_action("Annotating screenshot with Google Cloud Vision")
-        return google_ocr_text_detect(input_image_path)
-    elif os.environ.get("AZURE_VISION_API_KEY"):
+    if os.environ.get("AZURE_VISION_API_KEY"):
         print_action("Annotating screenshot with Azure Vision")
         return azure_ocr_text_detect(input_image_path)
+    elif os.environ.get("GCLOUD_VISION_API_KEY"):
+        print_action("Annotating screenshot with Google Cloud Vision")
+        return google_ocr_text_detect(input_image_path)
     raise Exception(
         "No OCR API env variable set, please set either GCLOUD_VISION_API_KEY or AZURE_VISION_API_KEY"
     )
@@ -66,7 +66,10 @@ def azure_ocr_text_detect(input_image_path) -> AnnotatedImage:
             bounding_box = line.bounding_box.split(",")
             vertexes = [
                 Vertex(x=int(bounding_box[0]), y=int(bounding_box[1])),
-                Vertex(x=int(bounding_box[2]), y=int(bounding_box[3])),
+                Vertex(
+                    x=int(bounding_box[0]) + int(bounding_box[2]),
+                    y=int(bounding_box[1]) + int(bounding_box[3]),
+                ),
             ]
             annotations.append(
                 TextAnnotation(

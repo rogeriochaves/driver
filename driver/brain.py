@@ -36,8 +36,7 @@ def plan_next_step_actions(context: Context, image_path: str):
 
     next_step_user_prompt = f"""\
     Alright, I have executed the previous actions, let me share you the updated screenshot, so you can plan the next actions.
-    Describe what you are seeing, and if we seem to be on the right track, prioritize what you see not what you have predicted,
-    because a lot of times the screen changes and we have to course correct.
+    Describe what you are seeing, and describe where it might have gone wrong, because usually the screen changes and we have to course correct.
     As a reminder my goal is: {context['task']}.
 
     Please create a list with the next actions to take if any (options are [CLICK <LABEL>], [TYPE "<TEXT>"], [SHORTCUT <shortcut>] or [REFRESH])

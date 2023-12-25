@@ -7,3 +7,5 @@ PyScreeze==0.1.30
 colorama
 litellm
 python-dotenv
+opencv-python>=4.8.1
+pandas
