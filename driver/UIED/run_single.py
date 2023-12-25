@@ -79,27 +79,32 @@ key_params = {
     "ffl-block": 5,
     "min-ele-area": 50,
     "merge-contained-ele": True,
-    "merge-line-to-paragraph": False,
-    "remove-bar": True,
+    "merge-line-to-paragraph": True,
+    "remove-bar": False,
 }
 
 
 def detect_components(
-    input_path_img, ocr_result: AnnotatedImage, max_height, showOCR=False, showUIED=False
+    input_path_img, ocr_result: AnnotatedImage, showOCR=False, showUIED=False
 ) -> DetectElementsResponse:
     output_root = "output"
 
+    # Resizes the image to be smaller because this process is heavy, and lower resolution
+    # does not lose much quality when detecting components
+    max_width_or_height = 982
     resized_height = resize_height_by_longest_edge(
-        input_path_img, resize_length=max_height
+        input_path_img, resize_length=max_width_or_height
     )
-    color_tips()
+    # color_tips()
 
     is_clf = False
 
     import detect_text.text_detection as text
 
     os.makedirs(pjoin(output_root, "ocr"), exist_ok=True)
-    text_json = text.text_detection(ocr_result, input_path_img, output_root, show=showOCR)
+    text_json = text.text_detection(
+        ocr_result, input_path_img, output_root, show=showOCR
+    )
 
     import detect_compo.ip_region_proposal as ip
 
@@ -162,7 +167,7 @@ if __name__ == "__main__":
     # ocr_result2 = ocr_detection_google("./twitter.png")
 
     components = detect_components(
-        input_image_path, ocr_result, max_height=982 * 2, show=True
+        input_image_path, ocr_result, showOCR=True, showUIED=True
     )
 
     print("\n\ncomponents\n\n", components)

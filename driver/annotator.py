@@ -1,6 +1,5 @@
 import math
 import os
-import sys
 from PIL import Image, ImageDraw, ImageFont
 import cv2
 from driver.UIED.run_single import detect_components
@@ -15,11 +14,9 @@ from driver.utils import is_retina_display
 def annotate_image(input_image_path, debug: DebugConfig):
     ocr_result = ocr_text_detection(input_image_path)
 
-    max_height = 982
     components = detect_components(
         input_image_path,
         ocr_result,
-        max_height=max_height,
         showOCR=debug["ocr"],
         showUIED=debug["uied"],
     )
@@ -39,19 +36,22 @@ def annotate_image(input_image_path, debug: DebugConfig):
     label_width = 48 if is_retina_display() else 24
     label_height = 24 if is_retina_display() else 12
 
+    # Sort components by rounded top to bottom, then left to right, so that labels are drawn in the same order
+    # and our eyes can follow them more easily, and probably GPT-V "eyes" too
     sorted_components = sorted(
         components["compos"],
         key=lambda x: (math.ceil(x.row_min / (label_height * 2)), x.col_min),
     )
+
     for component in sorted_components:
         if component.text_content and len(component.text_content) < 2:
             continue
 
         component_position = {
-            "x": component.col_min / img_multiplier_factor["width"],
-            "y": component.row_min / img_multiplier_factor["height"],
-            "x2": component.col_max / img_multiplier_factor["width"],
-            "y2": component.row_max / img_multiplier_factor["height"],
+            "x": round(component.col_min / img_multiplier_factor["width"]),
+            "y": round(component.row_min / img_multiplier_factor["height"]),
+            "x2": round(component.col_max / img_multiplier_factor["width"]),
+            "y2": round(component.row_max / img_multiplier_factor["height"]),
         }
         component_width = component_position["x2"] - component_position["x"]
         component_height = component_position["y2"] - component_position["y"]
@@ -65,12 +65,11 @@ def annotate_image(input_image_path, debug: DebugConfig):
         )
 
         # Draw label in the center of the component for big components
-        if component_width > 100 and component_height > 100:
+        big_component = 200 if is_retina_display() else 100
+        if component_width > big_component and component_height > big_component:
             label_position = (
-                round(component_position["x"] + component_width / 2 - label_width / 2),
-                round(
-                    component_position["y"] + component_height / 2 - label_height / 2
-                ),
+                round(component_position["x"] + component_width / 2 - label_width),
+                round(component_position["y"] + component_height / 2 - label_height),
             )
 
         too_close = any(
@@ -101,7 +100,14 @@ def annotate_image(input_image_path, debug: DebugConfig):
         drawn_positions.append(label_position)
         label_map[label] = {
             "text": component.text_content or "",
-            "position": label_position,
+            "position": (
+                component_position["x"],
+                component_position["y"],
+            ),
+            "size": (
+                component_width,
+                component_height,
+            ),
         }
         label_counter += 1
 

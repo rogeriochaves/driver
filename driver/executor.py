@@ -162,15 +162,15 @@ def execute(context: Context, label_map: LabelMap, actions: List[Action]):
 def click(item: LabelMapItem):
     division = 2 if is_retina_display() else 1
     x, y = (
-        round(item["position"][0] + (24 * 1.5 * division)) / division,
-        round(item["position"][1] + (12 * 1.5 * division)) / division,
+        round(item["position"][0] + item["size"][0] / 2) / division,
+        round(item["position"][1] + item["size"][1] / 2) / division,
     )
     pyautogui.moveTo(x, y, duration=1)
     window = pygetwindow.getWindowsAt(x, y)
     if window:
         focused_window = pygetwindow.getActiveWindow()
         if window[0] != focused_window:
-            pyautogui.click() # one extra click to focus the window
+            pyautogui.click()  # one extra click to focus the window
     pyautogui.click()
 
 

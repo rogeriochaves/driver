@@ -34,6 +34,7 @@ Action = Union[Click, Type, Press, Refresh]
 class LabelMapItem(TypedDict):
     text: str
     position: tuple[int, int]
+    size: tuple[int, int]
 
 
 LabelMap = Dict[str, LabelMapItem]
