@@ -12,7 +12,7 @@ from driver.brain import (
 )
 from driver.logger import print_action
 from driver.annotator import annotate_image
-from driver.types import Action, LabelMap, Context, LabelMapItem
+from driver.types import Action, DebugConfig, LabelMap, Context, LabelMapItem
 from colorama import Fore, Style
 
 from driver.utils import is_retina_display
@@ -25,9 +25,11 @@ def take_screenshot():
     return "./output/screenshot.png"
 
 
-def start(task: str):
+def start(task: str, debug: DebugConfig):
     screenshot = take_screenshot()
-    label_map, output_image_path, img_multiplier_factor = annotate_image(screenshot)
+    label_map, output_image_path, img_multiplier_factor = annotate_image(
+        screenshot, debug=debug
+    )
 
     context: Context = {
         "task": task,
@@ -35,6 +37,7 @@ def start(task: str):
         "high_level_plan": "",
         "actions_history": [],
         "img_multiplier_factor": img_multiplier_factor,
+        "debug": debug,
     }
     plan_and_actions = plan_next_step_actions(
         context=context,
@@ -55,7 +58,9 @@ def start(task: str):
 
 def next_step(context: Context):
     screenshot = take_screenshot()
-    label_map, output_image_path, img_multiplier_factor = annotate_image(screenshot)
+    label_map, output_image_path, img_multiplier_factor = annotate_image(
+        screenshot, debug=context["debug"]
+    )
     context["img_multiplier_factor"] = img_multiplier_factor
     str_actions = plan_next_step_actions(
         context=context,

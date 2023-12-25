@@ -26,7 +26,7 @@ def save_corners(file_path, corners, compo_name, clear=True):
 
 
 def save_corners_json(file_path, compos):
-    img_shape = compos[0].image_shape
+    img_shape = compos[0].image_shape if len(compos) > 0 else None
     output = {'img_shape': img_shape, 'compos': []}
     f_out = open(file_path, 'w')
 

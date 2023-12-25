@@ -44,6 +44,12 @@ class ImgMultiplierFactor(TypedDict):
     height: float
 
 
+class DebugConfig(TypedDict):
+    ocr: bool
+    uied: bool
+    annotations: bool
+
+
 class Context(TypedDict):
     task: str
     high_level_plan: str
@@ -52,6 +58,7 @@ class Context(TypedDict):
     ]
     actions_history: List[List[Action]]
     img_multiplier_factor: ImgMultiplierFactor
+    debug: DebugConfig
 
 
 @dataclass

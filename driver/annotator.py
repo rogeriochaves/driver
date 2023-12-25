@@ -1,22 +1,27 @@
 import math
 import os
+import sys
 from PIL import Image, ImageDraw, ImageFont
 import cv2
 from driver.UIED.run_single import detect_components
-from driver.logger import print_action
+from driver.UIED.utils import show_image
 from driver.ocr_call import ocr_text_detection
 
 
-from driver.types import ImgMultiplierFactor, LabelMap
+from driver.types import DebugConfig, ImgMultiplierFactor, LabelMap
 from driver.utils import is_retina_display
 
 
-def annotate_image(input_image_path, show=False):
+def annotate_image(input_image_path, debug: DebugConfig):
     ocr_result = ocr_text_detection(input_image_path)
 
     max_height = 982
     components = detect_components(
-        input_image_path, ocr_result, max_height=max_height, show=False
+        input_image_path,
+        ocr_result,
+        max_height=max_height,
+        showOCR=debug["ocr"],
+        showUIED=debug["uied"],
     )
 
     original_image = Image.open(input_image_path)
@@ -41,25 +46,36 @@ def annotate_image(input_image_path, show=False):
     for component in sorted_components:
         if component.text_content and len(component.text_content) < 2:
             continue
-        if (
-            component.row_max
-            and (
-                component.row_max / img_multiplier_factor["height"]
-                - component.row_min / img_multiplier_factor["height"]
-            )
-            < 24
-        ):
+
+        component_position = {
+            "x": component.col_min / img_multiplier_factor["width"],
+            "y": component.row_min / img_multiplier_factor["height"],
+            "x2": component.col_max / img_multiplier_factor["width"],
+            "y2": component.row_max / img_multiplier_factor["height"],
+        }
+        component_width = component_position["x2"] - component_position["x"]
+        component_height = component_position["y2"] - component_position["y"]
+
+        if component_height < label_height:
             continue
-        position = (
-            round(component.col_min / img_multiplier_factor["width"] - label_width / 2),
-            round(
-                component.row_min / img_multiplier_factor["height"] - label_height / 2
-            ),
+
+        label_position = (
+            round(component_position["x"] - label_width / 2),
+            round(component_position["y"] - label_height / 2),
         )
 
+        # Draw label in the center of the component for big components
+        if component_width > 100 and component_height > 100:
+            label_position = (
+                round(component_position["x"] + component_width / 2 - label_width / 2),
+                round(
+                    component_position["y"] + component_height / 2 - label_height / 2
+                ),
+            )
+
         too_close = any(
-            abs(position[0] - pos[0]) < label_width
-            and abs(position[1] - pos[1]) < label_height * 2
+            abs(label_position[0] - pos[0]) < label_width
+            and abs(label_position[1] - pos[1]) < label_height * 2
             for pos in drawn_positions
         )
 
@@ -76,15 +92,15 @@ def annotate_image(input_image_path, show=False):
             label = f"{label_prefix}{label_counter}"
             draw_square(
                 original_image,
-                position,
+                label_position,
                 label,
                 width=label_width,
                 height=label_height,
             )
-            drawn_positions.append(position)
+            drawn_positions.append(label_position)
             label_map[label] = {
                 "text": component.text_content or "",
-                "position": position,
+                "position": label_position,
             }
             label_counter += 1
 
@@ -93,10 +109,8 @@ def annotate_image(input_image_path, show=False):
     original_image.save(output_image_path)
 
     print(f"{len(label_map.keys())} elements found on the screen", end="")
-    if show:
-        cv2.imshow("Annotated Image", cv2.imread(output_image_path))
-        cv2.waitKey(0)
-        cv2.destroyWindow("Annotated Image")
+    if debug["annotations"]:
+        show_image("Annotated", cv2.imread(output_image_path))
 
     return label_map, output_image_path, img_multiplier_factor
 

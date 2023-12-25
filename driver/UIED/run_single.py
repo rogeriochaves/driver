@@ -85,7 +85,7 @@ key_params = {
 
 
 def detect_components(
-    input_path_img, ocr_result: AnnotatedImage, max_height, show=False
+    input_path_img, ocr_result: AnnotatedImage, max_height, showOCR=False, showUIED=False
 ) -> DetectElementsResponse:
     output_root = "output"
 
@@ -99,7 +99,7 @@ def detect_components(
     import detect_text.text_detection as text
 
     os.makedirs(pjoin(output_root, "ocr"), exist_ok=True)
-    text_json = text.text_detection(ocr_result, input_path_img, output_root, show=False)
+    text_json = text.text_detection(ocr_result, input_path_img, output_root, show=showOCR)
 
     import detect_compo.ip_region_proposal as ip
 
@@ -135,7 +135,7 @@ def detect_components(
         pjoin(output_root, "merge"),
         is_remove_bar=key_params["remove-bar"],
         is_paragraph=key_params["merge-line-to-paragraph"],
-        show=show,
+        show=showUIED,
     )
 
     return components

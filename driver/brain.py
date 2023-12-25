@@ -304,5 +304,7 @@ def llm_structured_actions(input: str):
             action.update(tool_use["parameters"])
             actions.append(action)
         return actions
+    except KeyboardInterrupt as e:
+        raise e
     except Exception as e:
         return None

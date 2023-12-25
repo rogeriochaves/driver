@@ -8,6 +8,7 @@ import time
 import shutil
 
 from detect_merge.Element import Element
+from utils import show_image
 
 
 def show_elements(
@@ -27,10 +28,7 @@ def show_elements(
     if shown_resize is not None:
         img_resize = cv2.resize(img, shown_resize)
     if show:
-        cv2.imshow(win_name, img_resize)
-        cv2.waitKey(wait_key)
-        if wait_key == 0:
-            cv2.destroyWindow(win_name)
+        show_image("UIED elements", img_resize)
     return img_resize
 
 
@@ -270,7 +268,7 @@ def merge(
     show_elements(
         img_resize,
         texts + compos,
-        show=show,
+        show=False,
         win_name="all elements before merging",
         wait_key=wait_key,
     )
