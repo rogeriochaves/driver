@@ -5,6 +5,7 @@ from typing import List
 
 import pyautogui
 import pyperclip
+import pygetwindow
 from driver.brain import (
     extract_high_level_plan_and_actions,
     extract_structured_actions,
@@ -103,12 +104,12 @@ def execute(context: Context, label_map: LabelMap, actions: List[Action]):
                 continue
             item = label_map[action["label"]]
             print(f"Clicking {item}")
-            click(context, item)
+            click(item)
         elif action["action"] == "TYPE":
             if "label" in action and action["label"] in label_map:
                 item = label_map[action["label"]]
                 print(f"Clicking {item}")
-                click(context, item)
+                click(item)
             type(action["text"])
         elif action["action"] == "PRESS":
             modifier_map = {
@@ -158,13 +159,18 @@ def execute(context: Context, label_map: LabelMap, actions: List[Action]):
     next_step(context)
 
 
-def click(context: Context, item: LabelMapItem):
+def click(item: LabelMapItem):
     division = 2 if is_retina_display() else 1
-    pyautogui.moveTo(
+    x, y = (
         round(item["position"][0] + (24 * 1.5 * division)) / division,
         round(item["position"][1] + (12 * 1.5 * division)) / division,
-        duration=1,
     )
+    pyautogui.moveTo(x, y, duration=1)
+    window = pygetwindow.getWindowsAt(x, y)
+    if window:
+        focused_window = pygetwindow.getActiveWindow()
+        if window[0] != focused_window:
+            pyautogui.click() # one extra click to focus the window
     pyautogui.click()
 
 
