@@ -1,4 +1,5 @@
 import os
+import subprocess
 import sys
 import time
 from typing import List
@@ -168,10 +169,30 @@ def click(item: LabelMapItem):
     pyautogui.moveTo(x, y, duration=1)
     window = pygetwindow.getWindowsAt(x, y)
     if window:
-        focused_window = pygetwindow.getActiveWindow()
-        if window[0] != focused_window:
+        focused_window = get_active_window()
+        if focused_window not in window[0]:
             pyautogui.click()  # one extra click to focus the window
     pyautogui.click()
+
+
+def get_active_window():
+    if sys.platform == "darwin":
+        applescript_command = """
+        tell application "System Events"
+            set frontApp to name of first application process whose frontmost is true
+            tell process frontApp
+                set windowTitle to name of front window
+            end tell
+        end tell
+        return windowTitle
+        """
+
+        frontmost_app_name = subprocess.check_output(
+            ["osascript", "-e", applescript_command], text=True
+        ).strip()
+        return frontmost_app_name
+    else:
+        return pygetwindow.getActiveWindow()
 
 
 def type(text):
