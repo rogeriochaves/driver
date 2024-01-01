@@ -163,8 +163,8 @@ def execute(context: Context, label_map: LabelMap, actions: List[Action]):
 def click(item: LabelMapItem):
     division = 2 if is_retina_display() else 1
     x, y = (
-        round(item["position"][0] + item["size"][0] / 2) / division,
-        round(item["position"][1] + item["size"][1] / 2) / division,
+        round(item["position"][0] / division) + 24,
+        round(item["position"][1] / division) + 12,
     )
     pyautogui.moveTo(x, y, duration=0.5)
     window = pygetwindow.getWindowsAt(x, y)
