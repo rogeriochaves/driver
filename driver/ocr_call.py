@@ -1,6 +1,11 @@
+import base64
 from dataclasses import dataclass
+import json
 import os
 from typing import List, cast
+
+import requests
+from urllib.parse import urlencode, quote_plus
 
 from driver.logger import print_action
 from google.cloud import vision
@@ -10,19 +15,39 @@ from azure.cognitiveservices.vision.computervision.models import (
 )
 from msrest.authentication import CognitiveServicesCredentials
 
-from driver.types import AnnotatedImage, BoundingPoly, TextAnnotation, Vertex
+from driver.types import (
+    AnnotatedImage,
+    BoundingPoly,
+    DebugConfig,
+    TextAnnotation,
+    Vertex,
+)
+from driver.utils import image_to_base64
 
 
-def ocr_text_detection(input_image_path) -> AnnotatedImage:
-    if os.environ.get("AZURE_VISION_API_KEY"):
+def ocr_text_detection(input_image_path, config: DebugConfig) -> AnnotatedImage:
+    ocr_provider = config["ocr_provider"]
+    if not ocr_provider:
+        if os.environ.get("AZURE_VISION_API_KEY"):
+            ocr_provider = "azure"
+        elif os.environ.get("GCLOUD_VISION_API_KEY"):
+            ocr_provider = "google"
+        elif os.environ.get("BAIDU_OCR_API_KEY"):
+            ocr_provider = "baidu"
+
+    if ocr_provider == "azure":
         print_action("Annotating screenshot with Azure Vision")
         return azure_ocr_text_detect(input_image_path)
-    elif os.environ.get("GCLOUD_VISION_API_KEY"):
+    elif ocr_provider == "google":
         print_action("Annotating screenshot with Google Cloud Vision")
         return google_ocr_text_detect(input_image_path)
-    raise Exception(
-        "No OCR API env variable set, please set either GCLOUD_VISION_API_KEY or AZURE_VISION_API_KEY"
-    )
+    elif ocr_provider == "baidu":
+        print_action("Annotating screenshot with Baidu Vision")
+        return baidu_ocr_text_detect(input_image_path)
+    else:
+        raise Exception(
+            "No OCR API env variable set, please set either AZURE_VISION_API_KEY or GCLOUD_VISION_API_KEY"
+        )
 
 
 def google_ocr_text_detect(input_image_path) -> AnnotatedImage:
@@ -77,6 +102,58 @@ def azure_ocr_text_detect(input_image_path) -> AnnotatedImage:
                     bounding_poly=BoundingPoly(vertices=vertexes),
                 )
             )
+    result = AnnotatedImage(text_annotations=annotations)
+
+    return result
+
+
+def baidu_ocr_text_detect(input_image_path) -> AnnotatedImage:
+    api_key = os.environ["BAIDU_OCR_API_KEY"]
+    secret_key = os.environ["BAIDU_OCR_SECRET_KEY"]
+
+    def get_access_token():
+        url = "https://aip.baidubce.com/oauth/2.0/token"
+        params = {
+            "grant_type": "client_credentials",
+            "client_id": api_key,
+            "client_secret": secret_key,
+        }
+        return str(requests.post(url, params=params).json().get("access_token"))
+
+    url = (
+        "https://aip.baidubce.com/rest/2.0/ocr/v1/accurate?access_token="
+        + get_access_token()
+    )
+    payload = urlencode(
+        {
+            "detect_direction": "false",
+            "vertexes_location": "true",
+            "paragraph": "false",
+            "probability": "false",
+            "image": image_to_base64(input_image_path),
+        },
+        quote_via=quote_plus,
+    )
+    headers = {
+        "Content-Type": "application/x-www-form-urlencoded",
+        "Accept": "application/json",
+    }
+    response = requests.request("POST", url, headers=headers, data=payload)
+    if response.status_code != 200 or "error_code" in json.loads(response.text):
+        raise Exception("Baidu OCR failed to annotate screenshot")
+    words = json.loads(response.text)["words_result"]
+
+    annotations: List[TextAnnotation] = []
+    for word in words:
+        vertices = [
+            Vertex(x=vertex["x"], y=vertex["y"]) for vertex in word["vertexes_location"]
+        ]
+        annotations.append(
+            TextAnnotation(
+                description=word["words"],
+                bounding_poly=BoundingPoly(vertices=vertices),
+            )
+        )
     result = AnnotatedImage(text_annotations=annotations)
 
     return result

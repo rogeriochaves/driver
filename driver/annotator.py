@@ -12,7 +12,7 @@ from driver.utils import is_retina_display
 
 
 def annotate_image(input_image_path, debug: DebugConfig):
-    ocr_result = ocr_text_detection(input_image_path)
+    ocr_result = ocr_text_detection(input_image_path, debug)
 
     components = detect_components(
         input_image_path,

@@ -10,3 +10,4 @@ python-dotenv
 opencv-python>=4.8.1
 pandas
 PyGetWindow
+requests

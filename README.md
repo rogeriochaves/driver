@@ -33,10 +33,12 @@ Now make a copy of `.env.example` to `.env`, you need to have both OpenAI and Az
 ```shell
 # OpenAI key to use GPT-V to be able to "see" the screen
 OPENAI_API_KEY=""
-# Choose either Azure or Google Cloud Vision API to use for OCR to help GPT-V finding elements on the screen
+# Choose either Azure, Google Cloud Vision or Baidu (better for chinese) to use for OCR to help GPT-V finding elements on the screen
 AZURE_VISION_API_KEY=""
 AZURE_VISION_ENDPOINT=""
 # GCLOUD_VISION_API_KEY=""
+# BAIDU_OCR_API_KEY=""
+# BAIDU_OCR_SECRET_KEY=""
 ```
 
 Finally, ask it to do anything you want!

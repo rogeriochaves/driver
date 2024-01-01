@@ -46,6 +46,7 @@ class ImgMultiplierFactor(TypedDict):
 
 
 class DebugConfig(TypedDict):
+    ocr_provider: Optional[Literal["azure", "google", "baidu"]]
     ocr: bool
     uied: bool
     annotations: bool
