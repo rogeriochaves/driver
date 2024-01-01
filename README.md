@@ -14,6 +14,12 @@ https://github.com/rogeriochaves/driver/assets/792201/8de94467-393a-487e-b265-46
 
 [Here is the link to the tweet](https://twitter.com/_rchaves_/status/1734493213199626340)
 
+### More demos
+
+[Playing Tic-Tac-Toe](https://twitter.com/_rchaves_/status/1739596548558725147)
+
+[Navigating in Chinese](https://twitter.com/_rchaves_/status/1741775549930840285)
+
 ## Installation
 
 Clone this repo:
